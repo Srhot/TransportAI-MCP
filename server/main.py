@@ -45,9 +45,15 @@ app.add_middleware(
 AVIATIONSTACK_BASE_URL = "http://api.aviationstack.com/v1"
 
 # Model sınıfları
-class ModelRequest(BaseModel):
-    model_id: str
-    input_data: Dict[str, Any]
+class ToolListItem(BaseModel):
+    id: str
+    name: str
+    description: str
+    version: str
+
+class ToolCallRequest(BaseModel):
+    tool_id: str
+    parameters: Dict[str, Any]
 
 class ModelResponse(BaseModel):
     model_id: str
@@ -265,6 +271,44 @@ async def list_models():
             }
         ]
     }
+
+# MCP Tools List Endpoint
+@app.get("/tools/list", response_model=List[ToolListItem], summary="List available tools", tags=["MCP Tools"])
+async def list_tools():
+    """Lists the available tools (models) that can be called."""
+    # Mevcut /models endpoint'inden logiği alalım
+    models_list = await list_models()
+    # Formatı ToolListItem'a dönüştürelim
+    tools_list = []
+    for model in models_list["models"]:
+        tools_list.append(ToolListItem(
+            id=model["id"],
+            name=model["name"],
+            description=model["description"],
+            version=model["version"]
+        ))
+    return tools_list
+
+# MCP Tools Call Endpoint
+@app.post("/tools/call", response_model=ModelResponse, summary="Call a specific tool", tags=["MCP Tools"])
+async def call_tool(request: ToolCallRequest):
+    """Calls a specific tool (model) with given parameters."""
+    # ToolCallRequest'i process_model_request için uygun formata dönüştürelim
+    internal_request = {
+        "model_id": request.tool_id,
+        "input_data": request.parameters
+    }
+    
+    try:
+        # Mevcut process_model_request fonksiyonunu kullanalım
+        response = await process_model_request(internal_request)
+        return response
+    except HTTPException as e:
+        # process_model_request'ten gelen HTTPException'ları yakalayalım
+        raise e
+    except Exception as e:
+        logger.error(f"Error calling tool: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
