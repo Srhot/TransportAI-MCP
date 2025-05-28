@@ -1,0 +1,13 @@
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # Smithery AI arayüzünden veya CLI ile ayarlamanız gerekecek
+      # Örneğin: AVIATIONSTACK_API_KEY: ${AVIATIONSTACK_API_KEY}
+      # Ya da Smithery Secrets kullanarak:
+      - AVIATIONSTACK_API_KEY
+    # Eğer veritabanı gibi başka servisleriniz olacaksa buraya ekleyebilirsiniz. 
